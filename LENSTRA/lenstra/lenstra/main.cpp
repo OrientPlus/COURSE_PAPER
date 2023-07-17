@@ -2,9 +2,9 @@
 #include "ECDH.hpp"
 
 
-// Запускает алогритм Ленстры itearations раз, с указанным флагом.
+// Runs the Lenstra algorithm 'iterations' times, with the specified flag.
 // На входе алгоритма всегда input_number
-// Возвращает среднее кол-во времени в миллисекундах затраченное на факторизацию
+// Returns the average amount of time in milliseconds spent on a single factorization
 mcpp_int lenstra_test(mcpp_int input_number, int iterations, int mode)
 {
 	timer t(2);
@@ -67,50 +67,6 @@ int main(int argc, char* argv[])
 	cout << "\n------------------------------------------\nAverage time for sub-multithreaded mode: " << avg2 << " millisec." << "\n------------------------------------------";
 	cout << "\n------------------------------------------\nAverage time for multi-threaded mode: " << avg3 << " millisec." << "\n------------------------------------------";
 
-	/*ECDH ecdhAlice(1842016301), ecdhBob;
-
-	publicParameter ppA = ecdhAlice.gen_main_parameters();
-	ecdhBob.set_main_parameters(ppA);
-
-	if (ecdhAlice.gen_shared_secret(ecdhBob.public_key) == 1 or ecdhBob.gen_shared_secret(ecdhAlice.public_key) == 1)
-	{
-		cout << "\nIt is necessary to regenerate the main parameters of the algorithm. \n\
-The resulting shared key is not defined on this elliptic curve.";
-	}
-	else
-		cout << "\nShared key successfully generated!";*/
-
-	/*ELLEPTIC_CURVE ec;
-	ec.limit = mcpp_int{ "37654765467534762343413417"};
-	ec.a = 7;
-	ec.b = 9;
-	
-	ec.gen_base_point();
-	//ec.basePoint.x = 142;
-	//ec.basePoint.y = 213;
-	
-	cout << "\nbp.x = " << ec.basePoint.x << "\nbp.y = " << ec.basePoint.y;
-
-
-	POINT res, res2, res3;
-	//mcpp_int c("4534534534534534777");
-	for(int i=2; i<200; i++)
-	{
-		res = ec.stupidmult(ec.basePoint, i);
-		res2 = ec.fastmult(ec.basePoint, i);
-		res3 = ec.mult(ec.basePoint, i);
-
-		if (res != res2 or res != res3)
-		{
-			cout << "\n-------------------------\nI = " << i;
-			cout << "\nStupid mult:\nres.x = " << res.x << "\nres.y = " << res.y;
-			cout << "\nFastmult:\nres2.x = " << res2.x << "\nres2.y = " << res2.y;
-			cout << "\nSimple mult:\nres3.x = " << res3.x << "\nres3.y = " << res3.y;
-			cout << "\n-------------------------\n";
-			continue;
-		}
-		cout << "\nI->" << i;
-	}*/
  	cout << endl;
 	system("pause");
 	return 0;

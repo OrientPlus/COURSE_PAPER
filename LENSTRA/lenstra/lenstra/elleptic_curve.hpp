@@ -17,7 +17,6 @@
 
 #include "gmpxx.h"
 
-
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/integer/mod_inverse.hpp>
 #include <boost/multiprecision/miller_rabin.hpp>
@@ -241,7 +240,7 @@ public:
         77747, 77509, 77849, 77863, 77867, 66271, 66293, 66301, 66337, 66343, 66347, 66359, 66361, 66373, 66377, 65777, 65789, 65809, 65827, 65831, 65837, 65839, 65843, 65851, 65867,
         60821, 60859, 60869, 60887, 60889, 60899, 60901, 60913, 60917, 60919 };
 
-
+    // Finds the order of the point
     void find_order_BP()
     {
         if (orderBP != 0)
@@ -261,7 +260,7 @@ public:
         return;
     }
 
-    // Генерирует случайную базовую точку определенную на ЭК
+    // Generates a random base point defined on the EC
     POINT gen_base_point()
     {
         auto seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -281,7 +280,7 @@ genBP:
         return basePoint;
     }
 
-    //Находит порядок ЭК и все точки заданные на ней
+    // Finds the order of the EC and all the points specified on it
     unsigned long long findAllPoint()
     {
         if (!allPoint.empty())
@@ -339,7 +338,7 @@ genBP:
         return t.get_current_time();
     }
 
-    // Задает параметры ЭК согласно рекомендациям NIST 
+    // Sets EC parameters according to NIST recommendations 
     void set_default_ec()
     {
         mcpp_int _limit("6277101735386680763835789423207666416083908700390324961279");
@@ -364,8 +363,7 @@ genBP:
         orderBP = _orderBP;
     }
 
-
-    //Проверяет, определена ли точка на ЭК
+    // Checking that the point is defined on the curve
     bool indeterminate_point_in_addition(POINT point)
     {
         mcpp_int _x = point.x, _y = point.y, _a = a, _b = b, tmp1, tmp2;
@@ -382,7 +380,7 @@ genBP:
             return false;
     }
 
-    //Сложение двух точек на кривой
+    // Adding two dots
     POINT plus(POINT aP, POINT bP)
     {
         if (aP == INF_POINT and bP != INF_POINT)
@@ -453,6 +451,7 @@ genBP:
         return res;
     }
 
+    // Slow simple implementation of sequential addition
     POINT stupidmult(POINT p, mcpp_int scalar)
     {
         POINT res = p;
@@ -466,7 +465,7 @@ genBP:
         return res;
     }
 
-    //Умножение точки на число (методом удвоения точки)
+    // Multiplying a point by a number by doubling
     POINT mult(POINT p, mcpp_int scalar)
     {
         //timer t;
@@ -497,6 +496,93 @@ genBP:
         return result;
     }
 
+    // Multiplication of a point by a scalar by doubling (multithreading version)
+    POINT mt_mult(POINT p, mcpp_int scalar)
+    {
+        vector<std::thread> ths;
+        vector<mcpp_int> step_box;
+        vector<POINT> subRes;
+        subRes.resize(10);
+        POINT res, resP;
+
+        if (scalar > 100000000)
+        {
+            mcpp_int step = scalar / MULT_THS, remains = scalar % MULT_THS;
+            //cout << "\nSource scalar = " << scalar << "\nNew scalar in thread = " << step << endl;
+            for (int i = 0; i < MULT_THS; i++)
+            {
+                ths.push_back(std::thread([&]() {
+                    _mult(std::ref(subRes[i]), p, step);
+                    }));
+            }
+            for (int i = 0; i < MULT_THS; i++)
+                ths[i].join();
+
+            
+            resP = subRes[0];
+            if (resP == INF_POINT)
+                return INF_POINT;
+            for (int i = 1; i < MULT_THS; i++)
+            {
+                if (subRes[i] == INF_POINT)
+                    return INF_POINT;
+                resP = plus(resP, subRes[i]);
+            }
+
+            if (remains != 0)
+            {
+                for (mcpp_int i = 0; i < remains; i++)
+                {
+                    resP = plus(resP, p);
+                }
+            }
+
+        }
+        else
+            resP = mult(p, scalar);
+
+        return resP;
+    }
+
+    // Fast binary multiplication. 
+    // The function has not been tested. Not recommended for use!
+    POINT fastmult(POINT p, mcpp_int scalar)
+    {
+        POINT P = INF_POINT, R = p;
+        unsigned long long bit_size;
+
+        // Переводим число в двоичный формат
+        mpz_class x(scalar.str().c_str());
+        size_t sz = mpz_sizeinbase(x.get_mpz_t(), 2);
+        char* buffer = new char[sz];
+        mpz_get_str(buffer, 2, x.get_mpz_t());
+
+        string bin_scalar(buffer);
+
+        bool fl = false;
+        for (long long i = sz-1; i >= 0; i--)
+        {
+            if (bin_scalar[i] == '0')
+            {
+                R = plus(R, R);
+                if (R == INF_POINT)
+                    return R;
+            }
+            else {
+                R = plus(P, R);
+                if (R == INF_POINT)
+                    return R;
+            }
+        }
+
+        if (!indeterminate_point_in_addition(R))
+            return INF_POINT;
+        else
+            return R;
+    }
+
+private:
+    // Multiplication of a point by a scalar by doubling (multithreading version)
     void _mult(POINT res, POINT p, mcpp_int scalar)
     {
         POINT result(0, 0), tmp = p;
@@ -531,94 +617,6 @@ genBP:
 
         res = result;
         return;
-    }
-
-    POINT mt_mult(POINT p, mcpp_int scalar)
-    {
-        vector<std::thread> ths;
-        vector<mcpp_int> step_box;
-        vector<POINT> subRes;
-        subRes.resize(10);
-        POINT res, resP;
-
-        // 12 zero
-        if (scalar > 100000000)
-        {
-            cout << "\nMultithread mult\n";
-            //bad_point = false;
-            mcpp_int step = scalar / MULT_THS, remains = scalar % MULT_THS;
-            //cout << "\nSource scalar = " << scalar << "\nNew scalar in thread = " << step << endl;
-            for (int i = 0; i < MULT_THS; i++)
-            {
-                ths.push_back(std::thread([&]() {
-                    _mult(std::ref(subRes[i]), p, step);
-                    }));
-            }
-            for (int i = 0; i < MULT_THS; i++)
-                ths[i].join();
-
-            
-            resP = subRes[0];
-            if (resP == INF_POINT)
-                return INF_POINT;
-            for (int i = 1; i < MULT_THS; i++)
-            {
-                if (subRes[i] == INF_POINT)
-                    return INF_POINT;
-                resP = plus(resP, subRes[i]);
-            }
-
-            if (remains != 0)
-            {
-                for (mcpp_int i = 0; i < remains; i++)
-                {
-                    resP = plus(resP, p);
-                }
-            }
-
-        }
-        else
-        {
-            cout << "\nSimple mult\n";
-            resP = mult(p, scalar);
-        }
-
-        return resP;
-    }
-
-    POINT fastmult(POINT p, mcpp_int scalar)
-    {
-        POINT P = INF_POINT, R = p;
-        unsigned long long bit_size;
-
-        // Переводим число в двоичный формат
-        mpz_class x(scalar.str().c_str());
-        size_t sz = mpz_sizeinbase(x.get_mpz_t(), 2);
-        char* buffer = new char[sz];
-        mpz_get_str(buffer, 2, x.get_mpz_t());
-
-        string bin_scalar(buffer);
-
-        bool fl = false;
-        for (long long i = sz-1; i >= 0; i--)
-        {
-            if (bin_scalar[i] == '0')
-            {
-                R = plus(R, R);
-                if (R == INF_POINT)
-                    return R;
-            }
-            else {
-                R = plus(P, R);
-                if (R == INF_POINT)
-                    return R;
-            }
-        }
-
-        if (!indeterminate_point_in_addition(R))
-            return INF_POINT;
-        else
-            return R;
     }
 };
 

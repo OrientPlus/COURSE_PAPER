@@ -1,83 +1,5 @@
 #include "Lenstra.h"
 
-static bool REWRITE = true;
-
-//void Lenstra::multi_divisor(mcpp_int input)
-//{
-//    mcpp_int newInput, divisor;
-//    init_b_value(input);
-//
-//    divisor = generate_ec_coefficient(input);
-//    if (divisor != 1)
-//    {
-//        cout << "\nEarler div!\n";
-//        return divisor;
-//    }
-//    P.x = ec.x;
-//    P.y = ec.y;
-//    P.ptrEC = &ec;
-//
-//    FINDED_DIV = false;
-//    vector<std::thread> threads;
-//    vector<mcpp_int> box;
-//    box.resize(DIVISOR_THREADS_MAX);
-//
-//    mcpp_int step = input / DIVISOR_THREADS_MAX,
-//        divis;
-//
-//    if (FLAG == SMT)
-//    {
-//        for (int i = 0; i < DIVISOR_THREADS_MAX; i++)
-//        {
-//            mcpp_int u, d;
-//            if (input % DIVISOR_THREADS_MAX != 0 and i == DIVISOR_THREADS_MAX - 1)
-//            {
-//                u = step * i;
-//                d = input;
-//            }
-//            else
-//            {
-//                u = step * i;
-//                d = u + step;
-//            }
-//            //cout << "\nUP limit = " << u << "\nDOWN limit = " << d;
-//            threads.push_back(std::thread([&]() {
-//                get_divisor_multithread(input, u, d, std::ref(divis));
-//                }));
-//        }
-//
-//        for (auto& t : threads)
-//            t.join();
-//
-//        divisor = int_divis;
-//    }
-//    else if (MT) {
-//        divisor = get_divisor(input);
-//    }
-//    else if (ST) {
-//        divisor = get_divisor(input);
-//    }
-//
-//
-//    /*if (divisor == -1)
-//        return -1;*/
-//
-//    if (divisor > 0)
-//    {
-//        return divisor;
-//    }
-//    else
-//    {
-//        mt.lock();
-//        //Сохраняем неудачные ЭК
-//        badEC.push_back(ec);
-//        mt.unlock();
-//        return 0;
-//    }
-//}
-
-
-
 vector<mcpp_int> Lenstra::run_sub_multi_thread()
 {
     main_func(SMT);
@@ -201,13 +123,13 @@ mcpp_int Lenstra::intermediate_divisor(mcpp_int input, int FLAG)
     }
 }
 
-//Инициализируем число B = N/4
+// B = N/4
 void Lenstra::init_b_value(mcpp_int input)
 {
     B = input / 4;
 } 
 
-//Генерирует случайную ЭК
+// Generates a random curve in Weierstrass normal form
 mcpp_int Lenstra::generate_ec_coefficient(mcpp_int input)
 {
     {
@@ -256,8 +178,7 @@ mcpp_int Lenstra::generate_ec_coefficient(mcpp_int input)
         return 1;
 }
 
-//Основная функция алгоритма Ленстры
-//Находит делитель числа
+// The main function of the Lenstra algorithm. Finds the divisor of a number
 mcpp_int Lenstra::get_divisor(mcpp_int input)
 {
     bool undefined_point_flag = false, fl = false;
@@ -383,6 +304,7 @@ mcpp_int Lenstra::get_divisor(mcpp_int input)
     return 0;
 }
 
+// Finds the divisor by implementing a multithreaded version of the main loop
 mcpp_int Lenstra::get_divisor_multithread(mcpp_int input, mcpp_int down_limit, mcpp_int up_limit, mcpp_int &res)
 {
     bool undefined_point_flag = false, fl = false;
@@ -521,7 +443,7 @@ mcpp_int Lenstra::get_divisor_multithread(mcpp_int input, mcpp_int down_limit, m
     return 0;
 }
 
-//Проверяет использовалась ли уже эта ЭК
+// Checks whether the specified curve has already been used
 bool Lenstra::check_ec()
 {
     std::lock_guard<mutex> lock(mt);

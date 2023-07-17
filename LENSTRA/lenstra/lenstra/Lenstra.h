@@ -19,9 +19,7 @@
 
 static bool KEEP_GOING = true;
 static int th_id_counter = 0;
-
 static bool FINDED_DIV = false;
-
 static std::mutex mt;
 
 
@@ -65,14 +63,11 @@ private:
 
 public:
     vector<mcpp_int> divisors;
-    /*Lenstra(mcpp_int number, mcpp_int limit) {
-        input_N = number;
-        ec.limit = limit;
-    };*/
     Lenstra(mcpp_int number)
     {
         input_N = number;
     };
+
 
     vector<mcpp_int> run_sub_multi_thread();
     void run_same_thread(vector<mcpp_int> &box);
@@ -82,18 +77,22 @@ class _Lenstra {
 public:
     mcpp_int input;
     vector<mcpp_int> res_box;
+    vector<thread> ths;
     mutex _mt;
     bool mute;
     _Lenstra(mcpp_int _input) {
         input = _input;
         mute = false;
     };
+    
 
+    // Drowns out the entire output of the class
     void mute_out(bool _mute)
     {
         mute = _mute;
     }
 
+    // Outputs the found divisors
     void print_divisors()
     {
         cout << endl;
@@ -147,8 +146,6 @@ public:
         }
     }
 
-    //—оздает несколько экземпл€ров класса Ћенстры в отдельных потоках
-    vector<thread> ths;
     void run_multi_thread()
     {
         int counter = 0;
